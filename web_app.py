@@ -8,6 +8,8 @@ import logging
 import sys
 import json
 from datetime import datetime
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
 
@@ -21,23 +23,76 @@ glitch_counter = 0
 # Секретный код для добавления подписчиков
 SECRET_CODE = "pepe2024"
 
-# База подписчиков в памяти (для Render)
-subscribers_db = []
+# PostgreSQL подключение
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
-# Загрузка подписчиков
-def load_subscribers():
-    global subscribers_db
-    logger.info(f"Загрузка {len(subscribers_db)} подписчиков из памяти")
-    return subscribers_db
-
-# Сохранение подписчиков
-def save_subscribers(subscribers):
-    global subscribers_db
+def get_db_connection():
     try:
-        subscribers_db = subscribers
-        logger.info(f"Сохранено {len(subscribers)} подписчиков в память")
+        conn = psycopg2.connect(DATABASE_URL)
+        return conn
+    except Exception as e:
+        logger.error(f"Ошибка подключения к БД: {e}")
+        return None
+
+def init_db():
+    conn = get_db_connection()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS subscribers (
+                        id SERIAL PRIMARY KEY,
+                        username VARCHAR(100) UNIQUE NOT NULL,
+                        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        source TEXT
+                    )
+                """)
+                conn.commit()
+                logger.info("База данных инициализирована")
+        except Exception as e:
+            logger.error(f"Ошибка инициализации БД: {e}")
+        finally:
+            conn.close()
+
+# Инициализация при запуске
+init_db()
+
+# Загрузка подписчиков из PostgreSQL
+def load_subscribers():
+    conn = get_db_connection()
+    if not conn:
+        return []
+    
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT username, added_at, source FROM subscribers ORDER BY added_at DESC")
+            return [dict(row) for row in cur.fetchall()]
+    except Exception as e:
+        logger.error(f"Ошибка загрузки подписчиков: {e}")
+        return []
+    finally:
+        conn.close()
+
+# Сохранение подписчиков в PostgreSQL
+def save_subscribers(subscribers):
+    conn = get_db_connection()
+    if not conn:
+        return
+    
+    try:
+        with conn.cursor() as cur:
+            for sub in subscribers:
+                cur.execute("""
+                    INSERT INTO subscribers (username, added_at, source) 
+                    VALUES (%s, %s, %s) 
+                    ON CONFLICT (username) DO NOTHING
+                """, (sub['username'], sub['added_at'], sub.get('source', '')))
+            conn.commit()
+            logger.info(f"Сохранено подписчиков: {len(subscribers)}")
     except Exception as e:
         logger.error(f"Ошибка сохранения подписчиков: {e}")
+    finally:
+        conn.close()
 
 # Извлечение @имен из фраз
 def extract_usernames_from_phrase(phrase):
@@ -386,25 +441,40 @@ def admin_subscribers():
         elif action == 'add':
             username = data.get('username', '')
             if username.startswith('@'):
-                subscribers = load_subscribers()
-                if username not in [s['username'] for s in subscribers]:
-                    subscribers.append({
-                        'username': username,
-                        'added_at': datetime.now().isoformat(),
-                        'source': 'manual'
-                    })
-                    save_subscribers(subscribers)
-                    return {'message': f'Пользователь {username} добавлен'}
+                conn = get_db_connection()
+                if conn:
+                    try:
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                                INSERT INTO subscribers (username, added_at, source) 
+                                VALUES (%s, %s, %s) 
+                                ON CONFLICT (username) DO NOTHING
+                            """, (username, datetime.now().isoformat(), 'manual'))
+                            conn.commit()
+                            return {'message': f'Пользователь {username} добавлен'}
+                    except Exception as e:
+                        return {'error': f'Ошибка добавления: {e}'}, 500
+                    finally:
+                        conn.close()
                 else:
-                    return {'message': f'Пользователь {username} уже существует'}
+                    return {'error': 'Ошибка подключения к БД'}, 500
             else:
                 return {'error': 'Имя должно начинаться с @'}, 400
         elif action == 'delete':
             username = data.get('username', '')
-            subscribers = load_subscribers()
-            subscribers = [s for s in subscribers if s['username'] != username]
-            save_subscribers(subscribers)
-            return {'message': f'Пользователь {username} удален'}
+            conn = get_db_connection()
+            if conn:
+                try:
+                    with conn.cursor() as cur:
+                        cur.execute("DELETE FROM subscribers WHERE username = %s", (username,))
+                        conn.commit()
+                        return {'message': f'Пользователь {username} удален'}
+                except Exception as e:
+                    return {'error': f'Ошибка удаления: {e}'}, 500
+                finally:
+                    conn.close()
+            else:
+                return {'error': 'Ошибка подключения к БД'}, 500
         
         return {'error': 'Неизвестное действие'}, 400
     
