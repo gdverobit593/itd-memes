@@ -38,8 +38,10 @@ def load_subscribers():
 # Сохранение подписчиков
 def save_subscribers(subscribers):
     try:
+        logger.info(f"Сохранение {len(subscribers)} подписчиков")
         with open(SUBSCRIBERS_FILE, 'w', encoding='utf-8') as f:
             json.dump(subscribers, f, ensure_ascii=False, indent=2)
+        logger.info(f"Подписчики успешно сохранены в {SUBSCRIBERS_FILE}")
     except Exception as e:
         logger.error(f"Ошибка сохранения подписчиков: {e}")
 
@@ -241,9 +243,11 @@ def generate_image():
         
         # Автоматически добавлять @имена в базу
         usernames = extract_usernames_from_phrase(text)
+        logger.info(f"Найдены @имена в тексте: {usernames}")
         if usernames:
             for username in usernames:
                 if username not in subscriber_usernames:
+                    logger.info(f"Добавление нового подписчика: {username}")
                     subscribers.append({
                         'username': username,
                         'added_at': datetime.now().isoformat(),
@@ -251,6 +255,7 @@ def generate_image():
                     })
             save_subscribers(subscribers)
             subscriber_usernames = [s['username'] for s in subscribers]
+            logger.info(f"Всего подписчиков в базе: {len(subscribers)}")
         
         # Иногда добавлять подписчиков в текст
         if subscriber_usernames and random.random() < 0.3:  # 30% шанс
