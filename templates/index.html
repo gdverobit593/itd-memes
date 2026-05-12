@@ -258,6 +258,39 @@
             font-size: 11px;
             margin-top: 3px;
         }
+
+        .subscribers-list {
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid #3a86ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .subscribers-list h4 {
+            color: #06ffa5;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subscribers-container {
+            max-height: 150px;
+            overflow-y: auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .subscriber-tag {
+            background: rgba(255, 0, 110, 0.3);
+            border: 1px solid #ff006e;
+            border-radius: 15px;
+            padding: 5px 10px;
+            color: #ffbe0b;
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(255, 0, 110, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -298,6 +331,15 @@
                 <span id="saved">0</span>
                 <span class="stat-label">СОХРАНЕНО</span>
             </div>
+            <div class="stat">
+                <span id="subscribers-count">0</span>
+                <span class="stat-label">ПОДПИСЧИКОВ</span>
+            </div>
+        </div>
+        
+        <div class="subscribers-list" id="subscribersList" style="display: none;">
+            <h4>📋 Собранные подписчики ИТД:</h4>
+            <div class="subscribers-container" id="subscribersContainer"></div>
         </div>
         
         <div class="footer">
@@ -356,6 +398,9 @@
                     count++;
                     document.getElementById('count').textContent = count;
                     
+                    // Обновить список подписчиков после генерации
+                    loadSubscribersDisplay();
+                    
                     updateStatusBar(100, '✅ Готово!');
                     setTimeout(() => {
                         updateStatusBar(0, 'Готов к генерации');
@@ -413,9 +458,42 @@
             }, 2000);
         }
 
+        // Загрузить подписчиков при загрузке
+        async function loadSubscribersDisplay() {
+            try {
+                const response = await fetch('/admin/subscribers', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({code: 'pepe2024', action: 'view'})
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    displaySubscribersOnMain(data.subscribers);
+                }
+            } catch (e) {
+                console.log('Не удалось загрузить подписчиков');
+            }
+        }
+
+        // Отобразить подписчиков на главной
+        function displaySubscribersOnMain(subscribers) {
+            const container = document.getElementById('subscribersContainer');
+            const countElement = document.getElementById('subscribers-count');
+            
+            if (subscribers.length > 0) {
+                document.getElementById('subscribersList').style.display = 'block';
+                container.innerHTML = '';
+                subscribers.forEach(s => {
+                    container.innerHTML += `<span class="subscriber-tag">${s.username}</span>`;
+                });
+                countElement.textContent = subscribers.length;
+            }
+        }
+
         // Сгенерировать первый мем при загрузке
         window.addEventListener('load', () => {
             generateMeme();
+            loadSubscribersDisplay();
         });
     </script>
     
