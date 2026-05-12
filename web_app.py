@@ -1,4 +1,4 @@
-from flask import Flask, send_file, render_template
+from flask import Flask, send_file, render_template, request, jsonify
 from PIL import Image, ImageDraw, ImageFont
 import random
 import os
@@ -6,6 +6,8 @@ from io import BytesIO
 import base64
 import logging
 import sys
+import json
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -15,6 +17,40 @@ logger = logging.getLogger(__name__)
 
 # Счётчик для глитча
 glitch_counter = 0
+
+# Секретный код для добавления подписчиков
+SECRET_CODE = "pepe2024"
+
+# Файл с базой подписчиков
+SUBSCRIBERS_FILE = "subscribers.json"
+
+# Загрузка подписчиков
+def load_subscribers():
+    try:
+        if os.path.exists(SUBSCRIBERS_FILE):
+            with open(SUBSCRIBERS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return []
+    except Exception as e:
+        logger.error(f"Ошибка загрузки подписчиков: {e}")
+        return []
+
+# Сохранение подписчиков
+def save_subscribers(subscribers):
+    try:
+        with open(SUBSCRIBERS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(subscribers, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Ошибка сохранения подписчиков: {e}")
+
+# Извлечение @имен из фраз
+def extract_usernames_from_phrase(phrase):
+    usernames = []
+    words = phrase.split()
+    for word in words:
+        if word.startswith('@'):
+            usernames.append(word)
+    return usernames
 
 # Те же кринжовые фразы про ИТД
 ITD_PHRASES = [
@@ -199,6 +235,19 @@ def generate_image():
         text = random.choice(ITD_PHRASES)
         style = random.choice(STYLES)
         
+        # Автоматически добавлять @имена в базу
+        usernames = extract_usernames_from_phrase(text)
+        if usernames:
+            subscribers = load_subscribers()
+            for username in usernames:
+                if username not in [s['username'] for s in subscribers]:
+                    subscribers.append({
+                        'username': username,
+                        'added_at': datetime.now().isoformat(),
+                        'source': text
+                    })
+            save_subscribers(subscribers)
+        
         # Подготовка текста (уменьшенный размер)
         font_size = max(30, w // 12)
         font = load_font(font_size)
@@ -305,6 +354,161 @@ def generate():
     except Exception as e:
         logger.error(f"Ошибка в endpoint /generate: {e}")
         return {'error': 'Internal server error'}, 500
+
+
+@app.route('/admin/subscribers', methods=['GET', 'POST'])
+def admin_subscribers():
+    """Секретный эндпоинт для управления подписчиками"""
+    if request.method == 'POST':
+        data = request.get_json()
+        code = data.get('code', '')
+        
+        if code != SECRET_CODE:
+            return {'error': 'Неверный код доступа'}, 403
+        
+        action = data.get('action', 'view')
+        
+        if action == 'view':
+            subscribers = load_subscribers()
+            return {'subscribers': subscribers}
+        elif action == 'add':
+            username = data.get('username', '')
+            if username.startswith('@'):
+                subscribers = load_subscribers()
+                if username not in [s['username'] for s in subscribers]:
+                    subscribers.append({
+                        'username': username,
+                        'added_at': datetime.now().isoformat(),
+                        'source': 'manual'
+                    })
+                    save_subscribers(subscribers)
+                    return {'message': f'Пользователь {username} добавлен'}
+                else:
+                    return {'message': f'Пользователь {username} уже существует'}
+            else:
+                return {'error': 'Имя должно начинаться с @'}, 400
+        elif action == 'delete':
+            username = data.get('username', '')
+            subscribers = load_subscribers()
+            subscribers = [s for s in subscribers if s['username'] != username]
+            save_subscribers(subscribers)
+            return {'message': f'Пользователь {username} удален'}
+        
+        return {'error': 'Неизвестное действие'}, 400
+    
+    # GET запрос - показываем простую админку
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Админка подписчиков</title>
+        <style>
+            body { font-family: Arial; padding: 20px; background: #f0f0f0; }
+            .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+            input, button { padding: 10px; margin: 5px; }
+            button { background: #007bff; color: white; border: none; cursor: pointer; }
+            button:hover { background: #0056b3; }
+            .subscriber { padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px; }
+            .error { color: red; }
+            .success { color: green; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Админка подписчиков ИТД</h1>
+            <div>
+                <input type="password" id="code" placeholder="Секретный код">
+                <button onclick="loadSubscribers()">Загрузить подписчиков</button>
+            </div>
+            <div>
+                <input type="text" id="username" placeholder="@username">
+                <button onclick="addSubscriber()">Добавить подписчика</button>
+            </div>
+            <div id="message"></div>
+            <div id="subscribers"></div>
+        </div>
+        
+        <script>
+            async function loadSubscribers() {
+                const code = document.getElementById('code').value;
+                try {
+                    const response = await fetch('/admin/subscribers', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({code: code, action: 'view'})
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        displaySubscribers(data.subscribers);
+                    } else {
+                        showMessage(data.error, 'error');
+                    }
+                } catch (e) {
+                    showMessage('Ошибка соединения', 'error');
+                }
+            }
+            
+            async function addSubscriber() {
+                const code = document.getElementById('code').value;
+                const username = document.getElementById('username').value;
+                try {
+                    const response = await fetch('/admin/subscribers', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({code: code, action: 'add', username: username})
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        showMessage(data.message, 'success');
+                        loadSubscribers();
+                    } else {
+                        showMessage(data.error, 'error');
+                    }
+                } catch (e) {
+                    showMessage('Ошибка соединения', 'error');
+                }
+            }
+            
+            async function deleteSubscriber(username) {
+                const code = document.getElementById('code').value;
+                try {
+                    const response = await fetch('/admin/subscribers', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({code: code, action: 'delete', username: username})
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        showMessage(data.message, 'success');
+                        loadSubscribers();
+                    } else {
+                        showMessage(data.error, 'error');
+                    }
+                } catch (e) {
+                    showMessage('Ошибка соединения', 'error');
+                }
+            }
+            
+            function displaySubscribers(subscribers) {
+                const div = document.getElementById('subscribers');
+                div.innerHTML = '<h3>Подписчики (' + subscribers.length + ')</h3>';
+                subscribers.forEach(s => {
+                    div.innerHTML += '<div class="subscriber">' + 
+                        '<strong>' + s.username + '</strong> - ' + 
+                        new Date(s.added_at).toLocaleString() + 
+                        ' <button onclick="deleteSubscriber(\\'' + s.username + '\\')">Удалить</button></div>';
+                });
+            }
+            
+            function showMessage(msg, type) {
+                const div = document.getElementById('message');
+                div.innerHTML = '<div class="' + type + '">' + msg + '</div>';
+                setTimeout(() => div.innerHTML = '', 3000);
+            }
+        </script>
+    </body>
+    </html>
+    '''
 
 
 if __name__ == '__main__':
