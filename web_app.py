@@ -21,27 +21,21 @@ glitch_counter = 0
 # Секретный код для добавления подписчиков
 SECRET_CODE = "pepe2024"
 
-# Файл с базой подписчиков
-SUBSCRIBERS_FILE = "subscribers.json"
+# База подписчиков в памяти (для Render)
+subscribers_db = []
 
 # Загрузка подписчиков
 def load_subscribers():
-    try:
-        if os.path.exists(SUBSCRIBERS_FILE):
-            with open(SUBSCRIBERS_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        return []
-    except Exception as e:
-        logger.error(f"Ошибка загрузки подписчиков: {e}")
-        return []
+    global subscribers_db
+    logger.info(f"Загрузка {len(subscribers_db)} подписчиков из памяти")
+    return subscribers_db
 
 # Сохранение подписчиков
 def save_subscribers(subscribers):
+    global subscribers_db
     try:
-        logger.info(f"Сохранение {len(subscribers)} подписчиков")
-        with open(SUBSCRIBERS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(subscribers, f, ensure_ascii=False, indent=2)
-        logger.info(f"Подписчики успешно сохранены в {SUBSCRIBERS_FILE}")
+        subscribers_db = subscribers
+        logger.info(f"Сохранено {len(subscribers)} подписчиков в память")
     except Exception as e:
         logger.error(f"Ошибка сохранения подписчиков: {e}")
 
