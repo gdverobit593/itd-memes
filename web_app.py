@@ -411,6 +411,9 @@ def admin_subscribers():
             .subscriber { padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px; }
             .error { color: red; }
             .success { color: green; }
+            .scroll-container { max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 5px; }
+            .subscriber-item { padding: 10px; border-bottom: 1px solid #eee; position: relative; }
+            .delete-btn { float: right; background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
         </style>
     </head>
     <body>
@@ -492,12 +495,16 @@ def admin_subscribers():
             function displaySubscribers(subscribers) {
                 const div = document.getElementById('subscribers');
                 div.innerHTML = '<h3>Подписчики (' + subscribers.length + ')</h3>';
+                div.innerHTML += '<div class="scroll-container">';
                 subscribers.forEach(s => {
-                    div.innerHTML += '<div class="subscriber">' + 
+                    div.innerHTML += '<div class="subscriber-item">' + 
                         '<strong>' + s.username + '</strong> - ' + 
                         new Date(s.added_at).toLocaleString() + 
-                        ' <button onclick="deleteSubscriber(\\'' + s.username + '\\')">Удалить</button></div>';
+                        '<br><small style="color: #666;">Источник: ' + (s.source || 'авто') + '</small>' +
+                        ' <button class="delete-btn" onclick="deleteSubscriber(\\'' + s.username + '\\')">Удалить</button>' +
+                        '<div style="clear: both;"></div></div>';
                 });
+                div.innerHTML += '</div>';
             }
             
             function showMessage(msg, type) {
