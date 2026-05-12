@@ -231,6 +231,10 @@ def generate_image():
         img = Image.open(img_path).convert('RGBA')
         w, h = img.size
         
+        # Загрузить подписчиков для добавления в фразы
+        subscribers = load_subscribers()
+        subscriber_usernames = [s['username'] for s in subscribers]
+        
         # Выбрать текст и стиль
         text = random.choice(ITD_PHRASES)
         style = random.choice(STYLES)
@@ -238,15 +242,24 @@ def generate_image():
         # Автоматически добавлять @имена в базу
         usernames = extract_usernames_from_phrase(text)
         if usernames:
-            subscribers = load_subscribers()
             for username in usernames:
-                if username not in [s['username'] for s in subscribers]:
+                if username not in subscriber_usernames:
                     subscribers.append({
                         'username': username,
                         'added_at': datetime.now().isoformat(),
                         'source': text
                     })
             save_subscribers(subscribers)
+            subscriber_usernames = [s['username'] for s in subscribers]
+        
+        # Иногда добавлять подписчиков в текст
+        if subscriber_usernames and random.random() < 0.3:  # 30% шанс
+            random_subscriber = random.choice(subscriber_usernames)
+            # Добавляем подписчика в случайное место текста
+            words = text.split()
+            insert_pos = random.randint(0, len(words))
+            words.insert(insert_pos, random_subscriber)
+            text = ' '.join(words)
         
         # Подготовка текста (уменьшенный размер)
         font_size = max(30, w // 12)
