@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ИТД Мемы 🐸</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #ff006e 0%, #8338ec 25%, #3a86ff 50%, #06ffa5 75%, #ffbe0b 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 0 40px rgba(255, 0, 110, 0.6), 
+                        0 0 80px rgba(51, 56, 236, 0.4);
+            max-width: 700px;
+            border: 3px solid #ff006e;
+            animation: neonPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes neonPulse {
+            0%, 100% { box-shadow: 0 0 40px rgba(255, 0, 110, 0.6), 0 0 80px rgba(51, 56, 236, 0.4); }
+            50% { box-shadow: 0 0 60px rgba(255, 0, 110, 0.8), 0 0 100px rgba(51, 56, 236, 0.6); }
+        }
+
+        h1 {
+            color: #ffbe0b;
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px #ff006e, 0 0 40px #8338ec;
+            letter-spacing: 3px;
+        }
+
+        .subtitle {
+            color: #06ffa5;
+            font-size: 18px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            text-shadow: 0 0 10px #06ffa5;
+        }
+
+        .creator-link {
+            color: #ffbe0b;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .creator-link a {
+            color: #ff006e;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+
+        .creator-link a:hover {
+            color: #ffbe0b;
+            text-shadow: 0 0 10px #ff006e;
+            border-bottom: 2px solid #ff006e;
+        }
+
+        /* Статус бар */
+        .status-bar {
+            height: 30px;
+            background: #1a1a2e;
+            border: 2px solid #3a86ff;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .status-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #06ffa5 0%, #3a86ff 50%, #ff006e 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            text-shadow: 0 0 5px black;
+            position: relative;
+        }
+
+        .status-fill::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .status-text {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #06ffa5;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .image-container {
+            background: #1a1a2e;
+            border: 3px solid #3a86ff;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(58, 134, 255, 0.3);
+        }
+
+        .image-container img {
+            max-width: 100%;
+            max-height: 500px;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(3, 255, 165, 0.5);
+            animation: imageAppear 0.5s ease-in-out;
+        }
+
+        @keyframes imageAppear {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .loading {
+            color: #06ffa5;
+            font-size: 24px;
+            display: none;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .buttons-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #ff006e 0%, #ff6b9d 100%);
+            color: white;
+            border: none;
+            padding: 18px 30px;
+            font-size: 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(255, 0, 110, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .button:hover {
+            background: linear-gradient(135deg, #ff6b9d 0%, #ff006e 100%);
+            box-shadow: 0 0 40px rgba(255, 0, 110, 0.8),
+                        0 0 60px rgba(51, 56, 236, 0.6);
+            transform: scale(1.05);
+        }
+
+        .button:active {
+            transform: scale(0.98);
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: scale(1);
+        }
+
+        .button-secondary {
+            background: linear-gradient(135deg, #3a86ff 0%, #06ffa5 100%);
+            box-shadow: 0 0 20px rgba(58, 134, 255, 0.6);
+        }
+
+        .button-secondary:hover {
+            box-shadow: 0 0 40px rgba(58, 134, 255, 0.8),
+                        0 0 60px rgba(6, 255, 165, 0.6);
+        }
+
+        .footer {
+            color: #8338ec;
+            font-size: 12px;
+            margin-top: 20px;
+            text-shadow: 0 0 10px #8338ec;
+            line-height: 1.6;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .stat {
+            color: #06ffa5;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            color: #3a86ff;
+            display: block;
+            font-size: 11px;
+            margin-top: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐸 ИТД МЕМЫ 🐸</h1>
+        <p class="subtitle">Кринжовые надписи про худшую соцсеть</p>
+        
+        <p class="creator-link">
+            Создатель: <a href="https://xn--d1ah4a.com/@sozdatelpepe" target="_blank">@sozdatelpepe на ИТД</a>
+        </p>
+        
+        <!-- Статус бар -->
+        <div class="status-bar">
+            <div class="status-fill" id="statusFill"></div>
+            <div class="status-text" id="statusText">Готов к генерации</div>
+        </div>
+        
+        <div class="image-container">
+            <div id="loading" class="loading">⏳ Генерирую мем...</div>
+            <img id="memeImage" style="display: none;" alt="ИТД мем">
+        </div>
+        
+        <div class="buttons-container">
+            <button class="button" onclick="generateMeme()" id="generateBtn">
+                📸 ГЕНЕРИРОВАТЬ 📸
+            </button>
+            <button class="button button-secondary" onclick="saveMeme()" id="saveBtn" style="display: none;">
+                💾 СОХРАНИТЬ 💾
+            </button>
+        </div>
+        
+        <div class="stats">
+            <div class="stat">
+                <span id="count">0</span>
+                <span class="stat-label">СГЕНЕРИРОВАНО</span>
+            </div>
+            <div class="stat">
+                <span id="saved">0</span>
+                <span class="stat-label">СОХРАНЕНО</span>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>💎 Самая худшая социальная сеть • Одна картинка за раз 💎</p>
+            <p>Все мемы сохраняются в папку Downloads</p>
+        </div>
+    </div>
+
+    <script>
+        let count = 0;
+        let saved = 0;
+        let currentImageUrl = null;
+
+        function updateStatusBar(progress, text) {
+            const fill = document.getElementById('statusFill');
+            const statusText = document.getElementById('statusText');
+            fill.style.width = progress + '%';
+            statusText.textContent = text;
+        }
+
+        async function generateMeme() {
+            const btn = document.getElementById('generateBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const loading = document.getElementById('loading');
+            const img = document.getElementById('memeImage');
+            
+            btn.disabled = true;
+            loading.style.display = 'block';
+            img.style.display = 'none';
+            saveBtn.style.display = 'none';
+            
+            updateStatusBar(0, '🔄 Инициализация...');
+            
+            try {
+                // Имитация прогресса
+                let progress = 10;
+                const progressInterval = setInterval(() => {
+                    if (progress < 90) {
+                        progress += Math.random() * 30;
+                        updateStatusBar(Math.min(progress, 90), '⚡ Обработка изображения...');
+                    }
+                }, 100);
+                
+                const response = await fetch('/generate');
+                clearInterval(progressInterval);
+                
+                updateStatusBar(95, '✨ Завершение...');
+                
+                const data = await response.json();
+                
+                if (data.image) {
+                    currentImageUrl = data.image;
+                    img.src = data.image;
+                    img.style.display = 'block';
+                    saveBtn.style.display = 'flex';
+                    count++;
+                    document.getElementById('count').textContent = count;
+                    
+                    updateStatusBar(100, '✅ Готово!');
+                    setTimeout(() => {
+                        updateStatusBar(0, 'Готов к генерации');
+                    }, 2000);
+                } else {
+                    alert('Ошибка при генерации мема ❌');
+                    updateStatusBar(0, 'Ошибка!');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Что-то пошло не так! ' + error);
+                updateStatusBar(0, 'Ошибка подключения');
+            } finally {
+                loading.style.display = 'none';
+                btn.disabled = false;
+            }
+        }
+
+        function saveMeme() {
+            if (!currentImageUrl) {
+                alert('Нет изображения для сохранения!');
+                return;
+            }
+
+            // Преобразовать base64 в blob
+            const base64Data = currentImageUrl.split(',')[1];
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'image/jpeg' });
+
+            // Создать ссылку для скачивания
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = `itd_mem_${Date.now()}.jpg`;
+            
+            // Скачать файл
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            // Обновить счётчик
+            saved++;
+            document.getElementById('saved').textContent = saved;
+            
+            // Уведомление
+            updateStatusBar(100, '💾 Сохранено в Downloads!');
+            setTimeout(() => {
+                updateStatusBar(0, 'Готов к генерации');
+            }, 2000);
+        }
+
+        // Сгенерировать первый мем при загрузке
+        window.addEventListener('load', () => {
+            generateMeme();
+        });
+    </script>
+</body>
+</html>

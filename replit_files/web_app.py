@@ -13,9 +13,6 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Счётчик для глитча
-glitch_counter = 0
-
 # Те же кринжовые фразы про ИТД
 ITD_PHRASES = [
     # Депрессивные/экзистенциальные
@@ -87,8 +84,8 @@ ITD_PHRASES = [
     "ИТД это вирус для которого нет вакцины",
 ]
 
-# Стили контура (только черный)
-STYLES = ["thick", "simple"]
+# Стили контура
+STYLES = ["thick", "shadow", "neon", "simple"]
 
 def load_font(size):
     """Загрузить шрифт или вернуть стандартный"""
@@ -120,14 +117,25 @@ def load_font(size):
 
 
 def draw_text_with_outline(draw, pos, text, font, outline_style="thick"):
-    """Рисовать текст с черной обводкой"""
+    """Рисовать текст с обводкой разного стиля"""
     x, y = pos
     
     if outline_style == "thick":
-        for adj_x in range(-4, 5):
-            for adj_y in range(-4, 5):
+        for adj_x in range(-5, 6):
+            for adj_y in range(-5, 6):
                 if adj_x != 0 or adj_y != 0:
                     draw.text((x+adj_x, y+adj_y), text, font=font, fill=(0, 0, 0, 255))
+        draw.text(pos, text, font=font, fill=(255, 255, 255, 255))
+        
+    elif outline_style == "shadow":
+        draw.text((x+4, y+4), text, font=font, fill=(0, 0, 0, 200))
+        draw.text((x+2, y+2), text, font=font, fill=(50, 50, 50, 255))
+        draw.text(pos, text, font=font, fill=(255, 255, 255, 255))
+        
+    elif outline_style == "neon":
+        for adj in range(-3, 4):
+            draw.text((x+adj, y-3), text, font=font, fill=(0, 255, 255, 150))
+            draw.text((x+adj, y+3), text, font=font, fill=(255, 0, 255, 150))
         draw.text(pos, text, font=font, fill=(255, 255, 255, 255))
         
     else:  # simple
@@ -136,44 +144,6 @@ def draw_text_with_outline(draw, pos, text, font, outline_style="thick"):
                 if adj_x != 0 or adj_y != 0:
                     draw.text((x+adj_x, y+adj_y), text, font=font, fill=(0, 0, 0, 255))
         draw.text(pos, text, font=font, fill=(255, 255, 255, 255))
-
-
-def apply_glitch(img):
-    """Применить дикий глитч эффект к изображению"""
-    w, h = img.size
-    pixels = img.load()
-    
-    # RGB сдвиг (хроматическая аберрация)
-    shift = random.randint(5, 15)
-    direction = random.choice(['horizontal', 'vertical'])
-    
-    if direction == 'horizontal':
-        for y in range(h):
-            for x in range(w - shift):
-                r, g, b = pixels[x + shift, y]
-                pixels[x, y] = (r, pixels[x, y][1], pixels[x, y][2])
-    else:
-        for x in range(w):
-            for y in range(h - shift):
-                r, g, b = pixels[x, y + shift]
-                pixels[x, y] = (r, pixels[x, y][1], b)
-    
-    # Случайные горизонтальные полосы
-    for _ in range(random.randint(3, 8)):
-        y = random.randint(0, h - 1)
-        height = random.randint(1, 5)
-        for py in range(min(y + height, h)):
-            for x in range(w):
-                if random.random() > 0.5:
-                    pixels[x, py] = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-    
-    # Случайные пиксельные искажения
-    for _ in range(random.randint(50, 150)):
-        x = random.randint(0, w - 1)
-        y = random.randint(0, h - 1)
-        pixels[x, y] = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-    
-    return img
 
 
 def generate_image():
@@ -199,8 +169,8 @@ def generate_image():
         text = random.choice(ITD_PHRASES)
         style = random.choice(STYLES)
         
-        # Подготовка текста (уменьшенный размер)
-        font_size = max(30, w // 12)
+        # Подготовка текста
+        font_size = max(40, w // 8)
         font = load_font(font_size)
         
         # Создать слой для текста
@@ -261,14 +231,6 @@ def generate_image():
         d.text((wm_x, wm_y), watermark_text, font=watermark_font, fill=(255, 255, 255, 200))
         
         out = Image.alpha_composite(img, txt).convert('RGB')
-        
-        # Глобальный счётчик для глитча
-        global glitch_counter
-        glitch_counter += 1
-        
-        # Применять глитч каждые 4-6 картинок
-        if glitch_counter % random.randint(4, 6) == 0:
-            out = apply_glitch(out)
         
         return out
         
