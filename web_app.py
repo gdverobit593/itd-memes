@@ -244,7 +244,7 @@ def generate_image():
         
         # Добавить водяной знак @sozdatelpepe в нижний правый угол
         watermark_text = "@sozdatelpepe"
-        watermark_font_size = max(20, w // 30)
+        watermark_font_size = max(15, w // 40)
         watermark_font = load_font(watermark_font_size)
         
         bbox = d.textbbox((0, 0), watermark_text, font=watermark_font)
